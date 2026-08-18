@@ -1,6 +1,6 @@
 library(rslurm)
 source("/hpc/home/sjs158/exp_bootvar/OWATT_functions.R")  # for calculate_metrics only
-source("work/sjs158/multiple_watt/0_params.R")
+source("/work/sjs158/multiple_watt/0_params.R")
 
 meta <- readRDS("job_meta.rds")
 sjob <- readRDS("sjob.rds")

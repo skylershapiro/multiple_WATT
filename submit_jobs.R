@@ -23,7 +23,7 @@ library(rslurm)
 #   good =  list(kappas =  c(0,.2,.3, .2,.3), N = 2000, alphas =  c(2.2,.95,.25, 1, .3))
 # )
 
-source("work/sjs158/multiple_watt/0_params.R")
+source("/work/sjs158/multiple_watt/0_params.R")
 # Build one replicate row per setting [1000 individual jobs]
 params <- do.call(rbind, lapply(seq_along(settings), function(s) {
   data.frame(seed = 1:1000, setting_idx = s)

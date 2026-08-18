@@ -13,7 +13,7 @@ library(rslurm)
 #   poor = list(kappas =   c(0,0.4,0.1,0.4,.1), N = 2000, alphas = c(3,.95,.25, 2.5, .3)),
 #   good =  list(kappas =  c(0,.2,.3, .2,.3), N = 2000, alphas =  c(2.2,.95,.25, 1, .3))
 # )
-source("work/sjs158/multiple_watt/0_params.R")
+source("/work/sjs158/multiple_watt/0_params.R")
 truth_params <- expand.grid(rep = 1:80, setting_idx = seq_along(settings))
 
 
