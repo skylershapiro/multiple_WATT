@@ -1,0 +1,323 @@
+---
+title: "ATT_under_positivity_violations"
+author: "Skyler Shapiro"
+date: "2026-07-14"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+source("/Users/skylershapiro/duke/DCRI/OWATT_simulations_skyler/simulation_results/bootvar/OWATT_functions.R")
+library(knitr)
+```
+
+### Define three overlap scenarios.
+```{r}
+# Define three levels of positivity
+good_kappas <- c(0,0.08,0.2,0.1,0.13)
+adequate_kappas <- c(0,.4,0.8,0.4,0.35)
+# poor_kappas <- c(0,1,1.9,.87,0.8)
+poor_kappas <- c(0,0.1,0.2,0.1,.1)
+
+```
+
+#### EDA: good overlap
+```{r cars}
+# Generate data
+N = 2000
+
+X <- make_data(N)
+
+#one setting: ks <- c(0,0.4,0.2,0.1,.1) als <- c(3,.95,.25, 2.5, .3)
+# another setting <- alphas = c(4,1.95,0.25,0.1, 1.8), kappas = c(0,0.1,0.2,0.1,.1)
+
+z_good <- make_treatment(X, N,kappas = good_kappas)
+z_adequate <- make_treatment(X, N, alphas = c(3,1.95,0.25,0.1, 1.8),kappas = adequate_kappas)
+z_poor <- make_treatment(X, N, alphas = c(4,1.95,0.25,0.1, 1.8), kappas = c(0,0.1,0.2,0.1,.1))
+
+Y_good <- make_outcome(X, z_good, N)
+Y_adequate <- make_outcome(X, z_adequate, N)
+Y_poor <- make_outcome(X, z_poor, N)
+```
+
+
+```{r}
+# structural positivity violation
+ks <- c(0,0.4,0.1,0.4,.1)
+als <- c(3,.95,.25, 2.5, .3)
+plot_overlap(kappas = ks, alphas = als)
+tab <- table(z_poor <- make_treatment(X, N, alphas = als, kappas = ks))
+kable(cbind(Trt = 1:5, Freq = tab, Percent = round(tab / N * 100, 2)))
+```
+
+```{r}
+# no structural positivity violation
+ks <- c(0,.2,.3, .2,.3)
+als <- c(2.2,.95,.25, 1, .3)
+plot_overlap(kappas = ks, alphas = als)
+tab <- table(z_poor <- make_treatment(X, N, alphas = als, kappas = ks))
+kable(cbind(Trt = 1:5, Freq = tab, Percent = round(tab / N * 100, 2)))
+```
+
+
+```{r}
+## VALIDATE PROPENSITY PLOTS WITH HISTOGRAM/COUNTS TO VERIFY STRUCTURAL POSITIVITY VIOLATION
+```
+
+
+```{r}
+plot_overlap(good_kappas)
+```
+
+```{r}
+tab <- table(make_treatment(X, N, alphas = c(-2, 4.0, -4.0, 0.5, 0.5),kappas = c(0, 0.1,0.2, .2, .2, .2)))
+kable(cbind(Trt = 1:5, Freq = tab, Percent = round(tab / N * 100, 2)))
+```
+
+#### EDA: adequate overlap
+```{r}
+plot_overlap(kappas = c(0,0.1,0.2,0.1,.1), alphas = c(4,1.95,0.25,0.1, 1.8))
+```
+
+```{r}
+tab <- table(z_poor)
+kable(cbind(Trt = 1:5, Freq = tab, Percent = round(tab / N * 100, 2)))
+```
+
+#### EDA: poor overlap
+```{r}
+plot_overlap(poor_kappas, alphas = c(4,1.95,0.25,0.1, 1.8))
+```
+
+```{r}
+tab <- table(z_poor)
+kable(cbind(Trt = 1:5, Freq = tab, Percent = round(tab / N * 100, 2)))
+```
+
+### Define weighting procedures:
+
+1. **ipw:** selection function: $h = 1$
+2. **trimming:** selection function: $h = I_{[\alpha, (1-\alpha)]}(e_j)$. Generalized propensity scores are re-estimated after trimming to improve finite sample performance per Li and Li, 2019.
+3. **truncation**  $h = \begin{cases}  e_j & e_j \in [\alpha, 1-\alpha]\\ \alpha & e_j < \alpha \\ 1-\alpha & e_j > 1-\alpha  \end{cases}$
+4. **influence trimming** $h = I_{(-\infty, \alpha]}(w_i)$ with $w_i$ being the vector of ipw weights for patients in group $i$.
+5. **generalized matching weights** $h_i = \min \{ e_{i1}, e_{i2}, \dots, e_{iJ} \}$
+6. **generalized overlap weights** $h  = \left( \sum_{k=1}^J \frac{1}{e_k(X)} \right)^{-1}$
+7. **Shannon's entropy weight**  $h= -[e_j \log(e_j) + e_i \log(e_i)]$
+8. **beta weights**  $h = (e_j \cdot e_i)^{\nu-1}, \quad \nu \ge 2$
+
+```{r}
+## ADD PLOT of KERNELS
+```
+
+
+### Examine weight distributions of IPW and OW under three overlap scenarios
+```{r}
+z_factor <- factor(z_good, levels = 1:5)
+fit <- nnet::multinom(z_factor ~ X, trace = FALSE)
+e_full <- predict(fit, type = "probs")   # N x 5 matrix, columns = groups 1-5
+e_j <- e_full[, 1]
+
+ipw_mat_good <- sapply(2:5, function(i) e_j / e_full[, i])
+ow_mat_good <- sapply(2:5, function(i)( e_j * (1 / rowSums(1 / e_full) ) / e_full[, i]))
+colnames(ow_mat_good) <- paste0(2:5, "v1")
+colnames(ipw_mat_good) <- paste0(2:5, "v1")
+
+z_factor <- factor(z_adequate, levels = 1:5)
+fit <- nnet::multinom(z_factor ~ X, trace = FALSE)
+e_full <- predict(fit, type = "probs")   # N x 5 matrix, columns = groups 1-5
+e_j <- e_full[, 1]
+
+ipw_mat_adequate<- sapply(2:5, function(i) e_j / e_full[, i])
+ow_mat_adequate <- sapply(2:5, function(i)( e_j * (1 / rowSums(1 / e_full) ) / e_full[, i]))
+colnames(ipw_mat_adequate) <- paste0(2:5, "v1")
+colnames(ow_mat_adequate) <- paste0(2:5, "v1")
+
+z_factor <- factor(z_poor, levels = 1:5)
+fit <- nnet::multinom(z_factor ~ X, trace = FALSE)
+e_full <- predict(fit, type = "probs")   # N x 5 matrix, columns = groups 1-5
+e_j <- e_full[, 1]
+
+ipw_mat_poor<- sapply(2:5, function(i) e_j / e_full[, i])
+ow_mat_poor <- sapply(2:5, function(i)( e_j * (1 / rowSums(1 / e_full) ) / e_full[, i]))
+colnames(ipw_mat_poor) <- paste0(2:5, "v1")
+colnames(ow_mat_poor) <- paste0(2:5, "v1")
+
+```
+
+```{r}
+rbind(summary(ipw_mat_good)) |> kable()
+```
+
+```{r}
+rbind(summary(ipw_mat_adequate)) |> kable()
+```
+
+```{r}
+rbind(summary(ipw_mat_poor)) |> kable()
+```
+
+```{r}
+rbind(summary(ow_mat_good)) |> kable()
+```
+
+```{r}
+rbind(summary(ow_mat_adequate)) |> kable()
+```
+
+```{r}
+rbind(summary(ow_mat_poor)) |> kable()
+```
+
+```{r}
+PSDfun = function(Z, D, covM, h, w) {
+  # Z: treatment value
+  # D: matrix of treatment indicators
+  # covM: covariate matrix, n by p
+  # h: value of the h function, n by 1
+  # w: matrix of weights, n by J
+
+  p = ncol(covM)
+  J = ncol(D)
+  psdM = matrix(NA, J, p)
+  
+  for (k in 1:p) {
+    x = as.numeric(covM[, k])
+    xbar.p = sum(rowSums(D * x * h)) / sum(rowSums(D * h))
+    xbar.j = colSums(D * x * w) / colSums(D * w)
+    s2x = mean(tapply(x, Z, var))
+    psdM[, k] = abs(xbar.j - xbar.p) / sqrt(s2x)
+  }
+  return(t(psdM))
+}
+
+# create contrast matrix
+J = 3
+Jc = choose(J, 2) # number of contrasts
+loc = t(combn(J, 2))
+C = matrix(0, Jc, J)
+
+for(i in 1:Jc) {
+  C[i, loc[i, 1]] = 1
+  C[i, loc[i, 2]] = -1
+}
+
+# Absolute standardized difference
+ASDfun = function(Z, D, C, covM, h, w) {
+  # Z: treatment value
+  # D: matrix of treatment indicators
+  # C: contrast matrix
+  # covM: covariate matrix, n by p
+  # h: value of the h function
+  # w: matrix of weights, n by J
+
+  p = ncol(covM)
+  Jc = nrow(C)
+  asdM = matrix(NA, Jc, p)
+
+  # loop through each pair
+  for (k in 1:p) {
+    x = as.numeric(covM[, k])
+    xbar.j = colSums(D * x * w) / colSums(D * w)
+    s2x = mean(tapply(x, Z, var))
+    asdM[, k] = abs(C %*% xbar.j) / sqrt(s2x)
+  }
+  return(t(asdM))
+}
+```
+
+
+```{r}
+# Setup dimensions
+n <- nrow(X)
+J <- 5 # Number of groups
+D <- model.matrix(~factor(z_poor) - 1) # N x 5 indicator matrix
+h <- rep(1, n)                        # Target: Overall population (ATE)
+w <- cbind(1,ow_mat_poor)                    # Your calculated overlap weights
+
+unweighted_results <- round(PSDfun(Z = z_poor, D = D, covM = X, h = h, w = rep (1 , N)), 3)
+print(unweighted_results)
+
+ipw_results <- round(PSDfun(Z = z_poor, D = D, covM = X, h = h, w = cbind(1, ipw_mat_poor)), 3)
+print(unweighted_results)
+
+psd_results <- round(PSDfun(Z = z_poor, D = D, covM = X, h = h, w = w), 3)
+print(psd_results)
+```
+
+
+```{r fig.width=18, fig.height=10}
+library(ggplot2)
+library(tidyr)
+library(patchwork)
+library(scales)
+
+group_colors <- c("#E69F00", "#56B4E9", "#CC79A7", "#D55E00", "#009E73")
+ipw_long_good <- pivot_longer(as.data.frame(ipw_mat_good), everything())
+ipw_long_adequate <- pivot_longer(as.data.frame(ipw_mat_adequate), everything())
+ipw_long_poor <- pivot_longer(as.data.frame(ipw_mat_poor), everything())
+
+p1 <- ggplot(ipw_long_good, aes(name, value, fill = name)) +
+  geom_boxplot() + 
+  scale_fill_manual(values = group_colors)
+
+ipw_long_adequate$value <- pmax(ipw_long_adequate$value, 1e-6)
+p2 <- ggplot(ipw_long_adequate, aes(name, value, fill = name)) +
+    geom_boxplot() +
+    scale_fill_manual(values = group_colors) +
+    scale_y_log10(
+        breaks = trans_breaks("log10", function(x) 10^x),
+        labels = label_number()) # Or use label_log() for 10^x formatting 
+        
+        
+ipw_long_poor$value <- pmax(ipw_long_poor$value, 1e-6)
+p3 <- ggplot(ipw_long_poor, aes(name, value, fill = name)) +
+    geom_boxplot() +
+    scale_fill_manual(values = group_colors) +
+    scale_y_log10(
+        breaks = trans_breaks("log10", function(x) 10^x),
+        labels = label_number() # Or use label_log() for 10^x formatting
+    )
+
+p1|p2|p3
+```
+
+```{r fig.width=18, fig.height=10}
+group_colors <- c("#E69F00", "#56B4E9", "#CC79A7", "#D55E00", "#009E73")
+ow_long_good <- pivot_longer(as.data.frame(ow_mat_good), everything())
+ow_long_adequate <- pivot_longer(as.data.frame(ow_mat_adequate), everything())
+ow_long_poor <- pivot_longer(as.data.frame(ow_mat_poor), everything())
+
+p1 <- ggplot(ow_long_good, aes(name, value, fill = name)) +
+  geom_boxplot() + 
+  scale_fill_manual(values = group_colors)
+
+ow_long_adequate$value <- pmax(ow_long_adequate$value, 1e-6)
+p2 <- ggplot(ow_long_adequate, aes(name, value, fill = name)) +
+    geom_boxplot() +
+    scale_fill_manual(values = group_colors) #+
+    # scale_y_log10(
+    #     breaks = trans_breaks("log10", function(x) 10^x),
+    #     labels = label_number()) # Or use label_log() for 10^x formatting 
+        
+        
+ow_long_poor$value <- pmax(ow_long_poor$value, 1e-6)
+p3 <-ggplot(ow_long_poor, aes(name, value, fill = name)) +
+    geom_boxplot() +
+    scale_fill_manual(values = group_colors) #+
+    # scale_y_log10(
+    #     breaks = trans_breaks("log10", function(x) 10^x),
+    #     labels = label_number() # Or use label_log() for 10^x formatting
+    # )
+
+p1|p2|p3
+```
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
