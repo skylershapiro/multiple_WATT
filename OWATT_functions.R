@@ -47,6 +47,8 @@ WATT <- function(y, z, X, reference_group = 1, treatment_group = 2, method="att"
     y <- y[h]
     z <- z[h]
     
+    if(length(z[z==treatment_group]) == 0) { return(NA)}
+    
     e_full <- predict(nnet::multinom(z ~ X, trace = FALSE), type = "probs")
   
     e_j <- e_full[, reference_group]
@@ -55,6 +57,7 @@ WATT <- function(y, z, X, reference_group = 1, treatment_group = 2, method="att"
     d_lj <- d_lj[h]
     h <- 1
     }
+  
   #if(method=="trimming"){h <- sigmoid(e_j - alpha, t) - sigmoid(e_j - (1 - alpha), t)}
   if(method=="influence_trimming"){
     h <- (d_li * e_j * e_i^(-1) / sum(d_li * e_j * e_i^(-1))) <= alpha
@@ -62,13 +65,14 @@ WATT <- function(y, z, X, reference_group = 1, treatment_group = 2, method="att"
     y <- y[h]
     z <- z[h]
   
+    if(length(z[z==treatment_group]) == 0) { return(NA)} 
+    
     e_full <- predict(nnet::multinom(z ~ X, trace = FALSE), type = "probs")
-  
-  e_j <- e_full[, reference_group]
-  e_i <- e_full[, treatment_group] 
-  d_li <- d_li[h]
-  d_lj <- d_lj[h]
-  h <- 1
+    e_j <- e_full[, reference_group]
+    e_i <- e_full[, treatment_group] 
+    d_li <- d_li[h]
+    d_lj <- d_lj[h]
+    h <- 1
 }
   if(method=="truncation"){
     numerator_sum <- rowSums(e_full) - e_i - e_j
