@@ -32,7 +32,7 @@ params <- do.call(rbind, lapply(seq_along(settings), function(s) {
 
 # Function each job will run
 run_one <- function(seed, setting_idx) {
-  source("/hpc/home/sjs158/exp_bootvar/OWATT_functions.R")
+  source("/work/sjs158/multiple_WATT/OWATT_functions.R")
   s <- settings[[setting_idx]]
   single_sim(N = s$N, seed = seed, kappas = s$kappas, alphas = s$alphas,
              tasks = my_tasks, n_boot = 200)

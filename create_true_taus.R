@@ -18,7 +18,7 @@ truth_params <- expand.grid(rep = 1:80, setting_idx = seq_along(settings))
 
 
 run_truth_rep <- function(rep, setting_idx) {
-  source("/hpc/home/sjs158/exp_bootvar/OWATT_functions.R")
+  source("/work/sjs158/multiple_WATT/OWATT_functions.R")
  N <- 100000 
 s <- settings[[setting_idx]]
   set.seed(42 + rep)
