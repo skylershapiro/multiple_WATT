@@ -34,6 +34,7 @@ params <- do.call(rbind, lapply(seq_along(settings), function(s) {
 run_one <- function(seed, setting_idx) {
   source("/work/sjs158/multiple_WATT/OWATT_functions.R")
   s <- settings[[setting_idx]]
+  print(s$kappas)
   single_sim(N = s$N, seed = seed, kappas = s$kappas, alphas = s$alphas,
              tasks = my_tasks, n_boot = 200)
 }
@@ -42,7 +43,7 @@ sjob <- slurm_apply(
   f            = run_one,
   params       = params,
   jobname      = "watt_sim",
-  nodes        = 3000,   
+  nodes        = 2000,   
   cpus_per_node = 1,
   global_objects = c("settings", "my_tasks"),
   slurm_options = list(
