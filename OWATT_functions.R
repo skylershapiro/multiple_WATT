@@ -250,6 +250,7 @@ single_sim <- function(N = 6000, seed = 1, kappas = c(0, 0.2, 0.2, 0.2, 0.2),
   
   point_est <- lapply(tasks, function(t) {
     calculate_watts(Y[, 6], Z, X, method = t$method, alpha = t$alpha)
+    print(t)
   })
   
   if (is.null(n_boot)) { n_boot <- 1 }
