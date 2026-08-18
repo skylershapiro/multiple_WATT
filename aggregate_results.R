@@ -1,16 +1,12 @@
 library(rslurm)
 source("/hpc/home/sjs158/exp_bootvar/OWATT_functions.R")  # for calculate_metrics only
+source("work/sjs158/multiple_watt/0_params.R")
 
 meta <- readRDS("job_meta.rds")
 sjob <- readRDS("sjob.rds")
 list2env(meta, envir = environment())
 
 sim_job      <- sjob$sim_job
-settings <- list(
-  good = list(kappas = c(0,0.08,0.2,0.1,0.13), N = 2000, alphas = c(.5,0.05,0.15,0.1, 0.1)),
-  adequate = list(kappas = c(0,.1,0.5,0.4,0.15), N = 2000, alphas = c(3,1.95,0.25,0.1, 1.8)),
-  poor = list(kappas = c(0,1,1.9,.87,0.8),N = 2000, alphas = c(5.5,1.05,0.15,0.2, 0.1))
-)
 
 # Build one replicate row per setting [1000 individual jobs]
 sim_params <- do.call(rbind, lapply(seq_along(settings), function(s) {

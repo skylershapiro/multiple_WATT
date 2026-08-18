@@ -13,23 +13,24 @@ source("/hpc/home/sjs158/exp_bootvar/OWATT_functions.R")
 # -----------------------------------------------------------------------------
 # Tasks and settings
 # -----------------------------------------------------------------------------
-my_tasks <- list(
-  trimming_05      = list(method = "trimming",         alpha = 0.05),
-  trimming_10      = list(method = "trimming",         alpha = 0.10),
-  trimming_15      = list(method = "trimming",         alpha = 0.15),
-  inf_trimming_04      = list(method = "influence_trimming", alpha = 0.04),
-  matching         = list(method = "matching_weights", alpha = 0) #,
-)
-
-settings <- list(
-  good = list(kappas = c(0,0.08,0.2,0.1,0.13), N = 2000, alphas = c(.5,0.05,0.15,0.1, 0.1)),
-  adequate = list(kappas = c(0,.1,0.5,0.4,0.15), N = 2000, alphas = c(3,1.95,0.25,0.1, 1.8)),
-  poor = list(kappas = c(0,1,1.9,.87,0.8),N = 2000, alphas = c(5.5,1.05,0.15,0.2, 0.1))
-)
+# my_tasks <- list(
+#   trimming_05      = list(method = "trimming",         alpha = 0.05),
+#   trimming_10      = list(method = "trimming",         alpha = 0.10),
+#   trimming_15      = list(method = "trimming",         alpha = 0.15),
+#   inf_trimming_04      = list(method = "influence_trimming", alpha = 0.04),
+#   matching         = list(method = "matching_weights", alpha = 0) #,
+# )
+# 
+# settings <- list(
+#   good = list(kappas = c(0,0.08,0.2,0.1,0.13), N = 2000, alphas = c(.5,0.05,0.15,0.1, 0.1)),
+#   adequate = list(kappas = c(0,.1,0.5,0.4,0.15), N = 2000, alphas = c(3,1.95,0.25,0.1, 1.8)),
+#   poor = list(kappas = c(0,1,1.9,.87,0.8),N = 2000, alphas = c(5.5,1.05,0.15,0.2, 0.1))
+# )
 
 # -----------------------------------------------------------------------------
 # Load results and compute metrics
 # -----------------------------------------------------------------------------
+source("work/sjs158/multiple_watt/0_params.R")
 sjob   <- readRDS("sjob.rds")
 res_all <- get_slurm_out(sjob, outtype = "raw", wrait = TRUE)
 params  <- do.call(rbind, lapply(seq_along(settings), function(s)
