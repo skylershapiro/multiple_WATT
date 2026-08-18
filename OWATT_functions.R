@@ -235,6 +235,84 @@ compute_true_tau <- function(kappas = c(0, 0.2, 0.2, 0.2, 0.2), tasks , alphas =
 }
 
 
+
+sandwich_estimator <- function(y, z, X, N, e_fit,
+                               reference_group = 1, treatment_group = 2,
+                               method = "att", alpha = 0, conf.level = 0.95) {
+  
+  J = 5
+  Jc = 4
+  loc = cbind(1, 2:5)
+  C = matrix(0, Jc, J)
+  for( i in 1: Jc ) {
+    C[i , loc [i ,1]] = 1
+    C[i , loc [i ,2]] = -1
+  }
+  C
+  
+  D <- as.matrix(model.matrix(~ factor(z) - 1))
+  Thetah = t(coef(e_fit)) # matrix coefficient
+  thetah = c(Thetah) 
+  IthetaInv = N * vcov(e_fit) # extract covariance
+  e_full <- e_fit$fitted.values # estimated propensity score
+  
+  if(method=="att"){h <- 1}
+  if(method=="overlap"){h <- 1 / rowSums(1 / e_full)}
+  if(method=="truncation"){
+    numerator_sum <- rowSums(e_full) - e_i - e_j
+    h <- I(e_i >= alpha & e_i <= 1) + I(e_i < alpha)*(1 - alpha - numerator_sum)/alpha 
+  }
+  if(method=="shannon_entropy"){h <- -1*(e_j*log(e_j) + e_i*log(e_i))}
+  if(method=="beta_weights"){h <- (e_j*e_i)^(alpha-1)}
+  
+  w = #TODO
+    omega = mean(h)
+  # wrong logic, for ATE not ATT
+  # mhat = as.numeric(colSums(D*Y_obs* w )/ colSums (D*w ) )
+  # tau = as.matrix(C %*% mhat)
+  
+  # Variance and interval estimation
+  omega = mean(h)
+  
+  # Calculate gradient of weights
+  Hmat = NULL
+  for(j in 1:J) {
+    wj = function(theta) {
+      Theta = matrix(theta, ncol(X) + 1, ncol(D) - 1)
+      Eta = cbind(1, X) %*% cbind(0, Theta)
+      return(as.numeric(exp(-Eta[, j])) / as.numeric(rowSums(exp(-Eta))))
+    }
+    wdotj = jacobian(wj, thetah)
+    Hmat = rbind(Hmat, c(colMeans(D[, j] * (Y - mhat[j]) * wdotj)))
+  }
+  
+  # Multinomial logistic score function
+  loglik = function(theta) {
+    Theta = matrix(theta, ncol(X) + 1, ncol(D) - 1)
+    Eta = cbind(1, X) %*% Theta
+    ltheta = as.numeric(rowSums(D[, -1] * Eta) - log(1 + rowSums(exp(Eta))))
+    return(ltheta)
+  }
+  
+  Sthetah = jacobian(loglik, thetah)
+  
+  # Covariance matrix of pairwise ATO estimates
+  # This a multivariate version of Theorem 1
+  # and relevant details are provided in Remark 3 (Supplement C)
+  YMat = matrix(rep(Y, J), n, J)
+  mhatMat = matrix(rep(mhat, each = n), n, J)
+  Psi = t(D * (YMat - mhatMat) * w) + Hmat %*% IthetaInv %*% t(Sthetah)
+  Sigmah = diag(C %*% tcrossprod(Psi) %*% t(C) / (n * omega)^2)
+  se = sqrt(Sigmah)
+  lcl = tau - qnorm(0.975) * se
+  ucl = tau + qnorm(0.975) * se
+  results = cbind(tau, lcl, ucl)
+  colnames(results) = c("Point estimates", "95% Lower limit", "95% Upper limit")
+  rownames(results) = c("1-2", "1-3", "2-3")
+  round(results, 3)
+  # Point estimates
+}
+
 # -----------------------------------------------------------------------------
 # purpose: Simulation function for WATT method comparison in single setting.
 #          Uses n_boot bootstrap replicates for SE estimates.
