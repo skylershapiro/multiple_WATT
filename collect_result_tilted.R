@@ -30,7 +30,7 @@ source("/hpc/home/sjs158/exp_bootvar/OWATT_functions.R")
 # -----------------------------------------------------------------------------
 # Load results and compute metrics
 # -----------------------------------------------------------------------------
-source("/work/sjs158/multiple_watt/0_params.R")
+source("/work/sjs158/multiple_WATT/0_params.R")
 sjob   <- readRDS("sjob.rds")
 res_all <- get_slurm_out(sjob, outtype = "raw", wrait = TRUE)
 params  <- do.call(rbind, lapply(seq_along(settings), function(s)
