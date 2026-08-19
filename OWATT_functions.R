@@ -248,13 +248,15 @@ sandwich_estimator <- function(y, z, X, N, e_fit,
     C[i , loc [i ,1]] = 1
     C[i , loc [i ,2]] = -1
   }
-  C
   
   D <- as.matrix(model.matrix(~ factor(z) - 1))
   Thetah = t(coef(e_fit)) # matrix coefficient
   thetah = c(Thetah) 
   IthetaInv = N * vcov(e_fit) # extract covariance
   e_full <- e_fit$fitted.values # estimated propensity score
+  
+  e_i <- e_full[, treatment_group]
+  e_j <- e_full[, reference_group]
   
   if(method=="att"){h <- 1}
   if(method=="overlap"){h <- 1 / rowSums(1 / e_full)}
@@ -325,6 +327,7 @@ single_sim <- function(N = 6000, seed = 1, kappas = c(0, 0.2, 0.2, 0.2, 0.2),
   X <- make_data(N)
   Z <- make_treatment(X, N, kappas = kappas, alphas = alphas)
   Y <- make_outcome(X, Z, N)
+  e_fit <- multinom(Z ~ X, trace = F)
   
   point_est <- lapply(tasks, function(t) {
     calculate_watts(Y[, 6], Z, X, method = t$method, alpha = t$alpha)
