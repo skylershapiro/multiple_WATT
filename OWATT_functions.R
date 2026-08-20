@@ -10,7 +10,7 @@
 # =============================================================================
 library(nnet)
 library(MASS)
-
+library(numDeriv)
 # -----------------------------------------------------------------------------
 # description: Pairwise WATT estimators for multiple-treatments; uses generalized propensity. 
 # params:      y, z, X, reference_group, treatment_group, method, alpha, epsilon
@@ -267,11 +267,13 @@ sandwich_estimator <- function(y, z, X, N, e_fit,
   if(method=="shannon_entropy"){h <- -1*(e_j*log(e_j) + e_i*log(e_i))}
   if(method=="beta_weights"){h <- (e_j*e_i)^(alpha-1)}
   
-  w = #TODO
+  w = (e_j * h) / e_i
     omega = mean(h)
   # wrong logic, for ATE not ATT
   # mhat = as.numeric(colSums(D*Y_obs* w )/ colSums (D*w ) )
+    mu_j <- as.numeric(colSums(D * y) / colSums(D))
   # tau = as.matrix(C %*% mhat)
+    tau_hat = mu_j - sum(D * y * w) / sum(D)
   
   # Variance and interval estimation
   omega = mean(h)
